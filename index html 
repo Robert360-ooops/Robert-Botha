@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zambia Area Directory</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>Zambia Area Directory</h1>
+        <p>Province → District → Area</p>
+    </header>
+
+    <main>
+        <div class="card">
+            <label for="province">Select Province</label>
+            <select id="province">
+                <option value="">Choose Province</option>
+            </select>
+
+            <label for="district">Select District</label>
+            <select id="district">
+                <option value="">Choose District</option>
+            </select>
+
+            <label for="area">Select Area</label>
+            <select id="area">
+                <option value="">Choose Area</option>
+            </select>
+
+            <button onclick="showLocation()">Show Location</button>
+
+            <div id="result"></div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,85 +1,378 @@
-const data = {
-    "Central": {
-        "Chibombo": ["Chibombo", "Keembe", "Mungule"],
-        "Kabwe": ["Kabwe Central", "Makululu", "Nangoma"],
-        "Kapiri Mposhi": ["Kapiri", "Luanshya Road", "Mukonchi"]
-    },
+// ==========================================
+// 🇿🇲 ZAMBIA AREA DIRECTORY
+// Province → District → Area/Ward
+// ==========================================
 
-    "Copperbelt": {
-        "Kitwe": ["Chimwemwe", "Ndeke", "Riverside"],
-        "Ndola": ["Kansenshi", "Masala", "Kabushi"],
-        "Chingola": ["Nchanga", "Chiwempala", "Kawama"]
-    },
+// Data source
+const PROVINCES_URL =
+  "https://raw.githubusercontent.com/open-admin-data/zambia-administrative-divisions/master/data/all-province.json";
 
-    "Lusaka": {
-        "Lusaka": ["Kabulonga", "Chilenje", "Matero", "Kanyama"],
-        "Chongwe": ["Chongwe", "Kanakantapa", "Chalimbana"],
-        "Kafue": ["Kafue", "Shikoswe", "Chawama"]
-    },
+const DISTRICTS_URL =
+  "https://raw.githubusercontent.com/open-admin-data/zambia-administrative-divisions/master/data/all-district.json";
 
-    "Southern": {
-        "Livingstone": ["Maramba", "Dambwa", "Libala"],
-        "Choma": ["Choma Central", "Mwapona", "Batoka"],
-        "Mazabuka": ["Mazabuka Central", "Munyama", "Magoye"]
-    }
-};
+const WARDS_URL =
+  "https://raw.githubusercontent.com/open-admin-data/zambia-administrative-divisions/master/data/all-ward.json";
+
+
+// ==========================================
+// GET HTML ELEMENTS
+// ==========================================
 
 const provinceSelect = document.getElementById("province");
 const districtSelect = document.getElementById("district");
 const areaSelect = document.getElementById("area");
 const result = document.getElementById("result");
 
-Object.keys(data).forEach(province => {
-    const option = document.createElement("option");
-    option.value = province;
-    option.textContent = province;
-    provinceSelect.appendChild(option);
-});
 
-provinceSelect.addEventListener("change", function () {
-    districtSelect.innerHTML =
-        '<option value="">Choose District</option>';
+// ==========================================
+// STORAGE FOR ZAMBIA DATA
+// ==========================================
 
-    areaSelect.innerHTML =
-        '<option value="">Choose Area</option>';
+let provinces = [];
+let districts = [];
+let wards = [];
 
-    const districts = data[this.value];
 
-    if (districts) {
-        Object.keys(districts).forEach(district => {
-            const option = document.createElement("option");
-            option.value = district;
-            option.textContent = district;
-            districtSelect.appendChild(option);
-        });
-    }
-});
+// ==========================================
+// SHOW MESSAGE
+// ==========================================
 
-districtSelect.addEventListener("change", function () {
-    areaSelect.innerHTML =
-        '<option value="">Choose Area</option>';
-
-    const province = provinceSelect.value;
-    const areas = data[province][this.value];
-
-    areas.forEach(area => {
-        const option = document.createElement("option");
-        option.value = area;
-        option.textContent = area;
-        areaSelect.appendChild(option);
-    });
-});
-
-function showLocation() {
-    const province = provinceSelect.value;
-    const district = districtSelect.value;
-    const area = areaSelect.value;
-
-    if (!province || !district || !area) {
-        result.textContent = "Please select all three options.";
-        return;
-    }
-
-    result.textContent =
-        `Selected: ${area}, ${district}, ${province} Province`;
+function showMessage(message) {
+  if (result) {
+    result.innerHTML = message;
+  }
 }
+
+
+// ==========================================
+// LOAD ZAMBIA DATA
+// ==========================================
+
+async function loadZambiaData() {
+
+  try {
+
+    showMessage("🇿🇲 Loading Zambia data...");
+
+    const [provinceResponse, districtResponse, wardResponse] =
+      await Promise.all([
+
+        fetch(PROVINCES_URL),
+        fetch(DISTRICTS_URL),
+        fetch(WARDS_URL)
+
+      ]);
+
+
+    // Check if data loaded correctly
+
+    if (!provinceResponse.ok ||
+        !districtResponse.ok ||
+        !wardResponse.ok) {
+
+      throw new Error("Could not load Zambia data.");
+
+    }
+
+
+    provinces = await provinceResponse.json();
+
+    districts = await districtResponse.json();
+
+    wards = await wardResponse.json();
+
+
+    // Load provinces into the first box
+
+    loadProvinces();
+
+
+    showMessage(
+      "🇿🇲 Zambia data loaded successfully. Select a province."
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    showMessage(
+      "❌ Unable to load Zambia data. Please check your internet connection and try again."
+    );
+
+  }
+
+}
+
+
+// ==========================================
+// LOAD PROVINCES
+// ==========================================
+
+function loadProvinces() {
+
+  provinceSelect.innerHTML =
+    '<option value="">Select Province</option>';
+
+
+  provinces.forEach(function(province) {
+
+    const option = document.createElement("option");
+
+    option.value = province.id;
+
+    option.textContent = province.name.en;
+
+    provinceSelect.appendChild(option);
+
+  });
+
+}
+
+
+// ==========================================
+// WHEN PROVINCE CHANGES
+// ==========================================
+
+provinceSelect.addEventListener("change", function() {
+
+  const provinceID = this.value;
+
+
+  // Clear district
+
+  districtSelect.innerHTML =
+    '<option value="">Select District</option>';
+
+
+  // Clear area
+
+  areaSelect.innerHTML =
+    '<option value="">Select Area</option>';
+
+
+  result.innerHTML = "";
+
+
+  // Nothing selected
+
+  if (provinceID === "") {
+
+    return;
+
+  }
+
+
+  // Find districts belonging to province
+
+  const provinceDistricts = districts.filter(function(district) {
+
+    return district.parent &&
+           district.parent.id === provinceID;
+
+  });
+
+
+  // Add districts
+
+  provinceDistricts.forEach(function(district) {
+
+    const option = document.createElement("option");
+
+    option.value = district.id;
+
+    option.textContent = district.name.en;
+
+    districtSelect.appendChild(option);
+
+  });
+
+});
+
+
+// ==========================================
+// WHEN DISTRICT CHANGES
+// ==========================================
+
+districtSelect.addEventListener("change", function() {
+
+  const districtID = this.value;
+
+
+  // Clear areas
+
+  areaSelect.innerHTML =
+    '<option value="">Select Area</option>';
+
+
+  result.innerHTML = "";
+
+
+  if (districtID === "") {
+
+    return;
+
+  }
+
+
+  // Find wards/areas belonging to district
+
+  const districtWards = wards.filter(function(ward) {
+
+    if (!ward.ancestors) {
+      return false;
+    }
+
+
+    return ward.ancestors.some(function(parent) {
+
+      return parent.id === districtID;
+
+    });
+
+  });
+
+
+  // Add areas/wards
+
+  districtWards.forEach(function(ward) {
+
+    const option = document.createElement("option");
+
+    option.value = ward.id;
+
+    option.textContent = ward.name.en;
+
+    areaSelect.appendChild(option);
+
+  });
+
+
+  // If no areas were found
+
+  if (districtWards.length === 0) {
+
+    const option = document.createElement("option");
+
+    option.value = "";
+
+    option.textContent = "No areas found";
+
+    areaSelect.appendChild(option);
+
+  }
+
+});
+
+
+// ==========================================
+// VIEW AREA
+// ==========================================
+
+function viewArea() {
+
+  const provinceID = provinceSelect.value;
+
+  const districtID = districtSelect.value;
+
+  const areaID = areaSelect.value;
+
+
+  // Check province
+
+  if (provinceID === "") {
+
+    showMessage(
+      "⚠️ Please select a province."
+    );
+
+    return;
+
+  }
+
+
+  // Check district
+
+  if (districtID === "") {
+
+    showMessage(
+      "⚠️ Please select a district."
+    );
+
+    return;
+
+  }
+
+
+  // Check area
+
+  if (areaID === "") {
+
+    showMessage(
+      "⚠️ Please select an area."
+    );
+
+    return;
+
+  }
+
+
+  // Find selected information
+
+  const province = provinces.find(function(item) {
+
+    return item.id === provinceID;
+
+  });
+
+
+  const district = districts.find(function(item) {
+
+    return item.id === districtID;
+
+  });
+
+
+  const area = wards.find(function(item) {
+
+    return item.id === areaID;
+
+  });
+
+
+  // Display result
+
+  result.innerHTML = `
+
+    <div class="area-result">
+
+      <h2>📍 Area Information</h2>
+
+      <p>
+        <strong>🇿🇲 Province:</strong>
+        ${province ? province.name.en : ""}
+      </p>
+
+      <p>
+        <strong>🏙️ District:</strong>
+        ${district ? district.name.en : ""}
+      </p>
+
+      <p>
+        <strong>📍 Area/Ward:</strong>
+        ${area ? area.name.en : ""}
+      </p>
+
+    </div>
+
+  `;
+
+}
+
+
+// ==========================================
+// START THE APPLICATION
+// ==========================================
+
+loadZambiaData();
